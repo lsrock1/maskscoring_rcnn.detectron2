@@ -526,6 +526,12 @@ class StandardROIHeads(ROIHeads):
             cfg, ShapeSpec(channels=in_channels, width=pooler_resolution, height=pooler_resolution)
         )
 
+    def _init_mask_iou_head(self, cfg):
+        self.maskiou_on = cfg.MODEL.MASKIOU_ON
+        if not self.maskiou_on:
+            return
+        
+
     def _init_keypoint_head(self, cfg):
         # fmt: off
         self.keypoint_on                         = cfg.MODEL.KEYPOINT_ON
@@ -567,7 +573,13 @@ class StandardROIHeads(ROIHeads):
             # Usually the original proposals used by the box head are used by the mask, keypoint
             # heads. But when `self.train_on_pred_boxes is True`, proposals will contain boxes
             # predicted by the box head.
-            losses.update(self._forward_mask(features_list, proposals))
+            if self.maskiou_on:
+                loss, selected_mask, labels, maskiou_targets = self._forward_mask(features_list, proposals)
+                losses.update(loss)
+            else:
+                losses.update(self._forward_mask(features_list, proposals))
+            
+            losses.update(self._forward_maskiou(features_list, proposals))
             losses.update(self._forward_keypoint(features_list, proposals))
             return proposals, losses
         else:
@@ -666,7 +678,12 @@ class StandardROIHeads(ROIHeads):
             proposal_boxes = [x.proposal_boxes for x in proposals]
             mask_features = self.mask_pooler(features, proposal_boxes)
             mask_logits = self.mask_head(mask_features)
-            return {"loss_mask": mask_rcnn_loss(mask_logits, proposals)}
+            if self.maskiou_on:
+                loss, selected_mask, labels, maskiou_targets = mask_rcnn_loss(mask_logits, proposals, self.maskiou_on)
+                return {"loss_mask": loss}, selected_mask, labels, maskiou_targets
+            else:
+                return {"loss_mask": mask_rcnn_loss(mask_logits, proposals, self.maskiou_on)}
+
         else:
             pred_boxes = [x.pred_boxes for x in instances]
             mask_features = self.mask_pooler(features, pred_boxes)

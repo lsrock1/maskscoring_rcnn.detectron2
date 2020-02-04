@@ -17,7 +17,7 @@ The registered object will be called with `obj(cfg, input_shape)`.
 """
 
 
-def mask_rcnn_loss(pred_mask_logits, instances):
+def mask_rcnn_loss(pred_mask_logits, instances, maskiou_on):
     """
     Compute the mask prediction loss defined in the Mask R-CNN paper.
 
@@ -41,6 +41,7 @@ def mask_rcnn_loss(pred_mask_logits, instances):
 
     gt_classes = []
     gt_masks = []
+    gt_masks_for_maskratio = []
     for instances_per_image in instances:
         if len(instances_per_image) == 0:
             continue
@@ -48,6 +49,9 @@ def mask_rcnn_loss(pred_mask_logits, instances):
             gt_classes_per_image = instances_per_image.gt_classes.to(dtype=torch.int64)
             gt_classes.append(gt_classes_per_image)
 
+        if maskiou_on:
+            gt_masks_for_maskratio.append(instances_per_image.gt_masks.tensor)
+        
         gt_masks_per_image = instances_per_image.gt_masks.crop_and_resize(
             instances_per_image.proposal_boxes.tensor, mask_side_len
         ).to(device=pred_mask_logits.device)
@@ -55,9 +59,18 @@ def mask_rcnn_loss(pred_mask_logits, instances):
         gt_masks.append(gt_masks_per_image)
 
     if len(gt_masks) == 0:
-        return pred_mask_logits.sum() * 0
+        if maskiou_on:
+            return pred_mask_logits.sum() * 0,
+                torch.empty(0, dtype=torch.float32, device=pred_mask_logits.device),
+                torch.empty(0, dtype=torch.float32, device=pred_mask_logits.device),
+                torch.empty(0, dtype=torch.float32, device=pred_mask_logits.device)
+        else:
+            return pred_mask_logits.sum() * 0
 
     gt_masks = cat(gt_masks, dim=0)
+
+    if maskiou_on:
+        gt_masks_for_maskratio = cat(gt_masks_for_maskratio, dim=0)
 
     if cls_agnostic_mask:
         pred_mask_logits = pred_mask_logits[:, 0]
@@ -89,7 +102,11 @@ def mask_rcnn_loss(pred_mask_logits, instances):
     mask_loss = F.binary_cross_entropy_with_logits(
         pred_mask_logits, gt_masks.to(dtype=torch.float32), reduction="mean"
     )
-    return mask_loss
+    
+    if maskiou_on:
+        return mask_loss, gt_masks, gt_classes, (gt_masks.sum([1, 2]) / gt_masks_for_maskratio.sum([1, 2])).detach()
+    else:
+        return mask_loss
 
 
 def mask_rcnn_inference(pred_mask_logits, pred_instances):
