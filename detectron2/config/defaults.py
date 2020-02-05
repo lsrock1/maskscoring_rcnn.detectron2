@@ -320,6 +320,13 @@ _C.MODEL.ROI_BOX_CASCADE_HEAD.IOUS = (0.5, 0.6, 0.7)
 # ---------------------------------------------------------------------------- #
 # Mask Head
 # ---------------------------------------------------------------------------- #
+_C.MODEL.ROI_MASKIOU_HEAD = CN()
+_C.MODEL.ROI_MASKIOU_HEAD.NAME = "MaskIoUHead"
+
+
+# ---------------------------------------------------------------------------- #
+# Mask Head
+# ---------------------------------------------------------------------------- #
 _C.MODEL.ROI_MASK_HEAD = CN()
 _C.MODEL.ROI_MASK_HEAD.NAME = "MaskRCNNConvUpsampleHead"
 _C.MODEL.ROI_MASK_HEAD.POOLER_RESOLUTION = 14
