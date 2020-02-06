@@ -1,7 +1,7 @@
 <img src=".github/Detectron2-Logo-Horz.svg" width="300" >
 
 ### This Repo
-* Implementation of maskscoring RCNN based on Detectron2
+* Implementation of [maskscoring RCNN](https://github.com/zjhuang22/maskscoring_rcnn) based on [Detectron2](https://github.com/facebookresearch/detectron2)
 * Insert MASKIOU_ON in your config file like below
   
 ```
