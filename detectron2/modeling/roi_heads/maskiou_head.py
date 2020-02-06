@@ -38,14 +38,12 @@ def mask_iou_loss(labels, pred_maskiou, gt_maskiou, loss_weight):
         else:
             loss = input * 0.0
         return loss.sum()
-    bg_label = pred_maskiou.shape[1]
-    positive_inds = torch.nonzero(labels != bg_label).squeeze(1)
-    labels_pos = labels[positive_inds]
 
-    if labels_pos.numel() == 0:
+    if labels.numel() == 0:
         return pred_maskiou.sum() * 0
-        
-    maskiou_loss = l2_loss(pred_maskiou[positive_inds, labels_pos], gt_maskiou)
+    
+    index = torch.arange(pred_maskiou.shape[0]).to(device=pred_maskiou.device)
+    maskiou_loss = l2_loss(pred_maskiou[index, labels], gt_maskiou)
     maskiou_loss = loss_weight * maskiou_loss
     
     return maskiou_loss
