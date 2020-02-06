@@ -1,5 +1,22 @@
 <img src=".github/Detectron2-Logo-Horz.svg" width="300" >
 
+### This Repo
+* Implementation of maskscoring RCNN based on Detectron2
+* Insert MASKIOU_ON in your config file like below
+  
+```
+_BASE_: "../Base-RCNN-FPN.yaml"
+MODEL:
+  WEIGHTS: "detectron2://ImageNetPretrained/MSRA/R-50.pkl"
+  MASK_ON: True
+  MASKIOU_ON: True
+  RESNETS:
+    DEPTH: 50
+SOLVER:
+  STEPS: (210000, 250000)
+  MAX_ITER: 270000
+```
+
 Detectron2 is Facebook AI Research's next generation software system
 that implements state-of-the-art object detection algorithms.
 It is a ground-up rewrite of the previous version,
