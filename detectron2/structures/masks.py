@@ -352,6 +352,26 @@ class PolygonMasks:
     def __len__(self) -> int:
         return len(self.polygons)
 
+    def crop(self, boxes: torch.Tensor) -> "PolygonMasks":
+        boxes = boxes.to(torch.device("cpu")).numpy()
+        results = [
+            self._crop(polygon, box) for polygon, box in zip(self.polygons, boxes)
+        ]
+
+        # print('origin: ', self.polygons[0][0])
+        # print('cropped: ', results[0][0])
+        return PolygonMasks(results)
+
+    def _crop(self, polygons: np.ndarray, box: np.ndarray) -> List[np.ndarray]:
+        w, h = box[2] - box[0], box[3] - box[1]
+
+        polygons = copy.deepcopy(polygons)
+        for p in polygons:
+            p[0::2] = p[0::2] - box[0]  # .clamp(min=0, max=w)
+            p[1::2] = p[1::2] - box[1]  # .clamp(min=0, max=h)
+
+        return polygons
+
     def crop_and_resize(self, boxes: torch.Tensor, mask_size: int) -> torch.Tensor:
         """
         Crop each mask by the given box, and resize results to (mask_size, mask_size).

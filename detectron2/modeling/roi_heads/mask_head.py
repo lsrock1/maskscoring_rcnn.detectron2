@@ -1,5 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import fvcore.nn.weight_init as weight_init
+import pycocotools.mask as mask_util
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -41,7 +43,7 @@ def mask_rcnn_loss(pred_mask_logits, instances, maskiou_on):
 
     gt_classes = []
     gt_masks = []
-    gt_masks_for_maskratio = []
+    mask_ratios = []
     for instances_per_image in instances:
         if len(instances_per_image) == 0:
             continue
@@ -51,8 +53,17 @@ def mask_rcnn_loss(pred_mask_logits, instances, maskiou_on):
             gt_classes.append(gt_classes_per_image)
 
         if maskiou_on:
-            gt_masks_for_maskratio.append(instances_per_image.gt_masks.area().to(device=pred_mask_logits.device))
-        
+            cropped_mask = instances_per_image.gt_masks.crop(instances_per_image.proposal_boxes.tensor)
+            cropped_mask = torch.tensor(
+                [mask_util.area(mask_util.frPyObjects([p for p in obj], box[3]-box[1], box[2]-box[0])).sum().astype(float)
+                for obj, box in zip(cropped_mask.polygons, instances_per_image.proposal_boxes.tensor)]
+                )
+                
+            mask_ratios.append(
+                (cropped_mask / instances_per_image.gt_masks.area())
+                .to(device=pred_mask_logits.device)
+            )
+            
         gt_masks_per_image = instances_per_image.gt_masks.crop_and_resize(
             instances_per_image.proposal_boxes.tensor, mask_side_len
         ).to(device=pred_mask_logits.device)
@@ -106,9 +117,7 @@ def mask_rcnn_loss(pred_mask_logits, instances, maskiou_on):
     )
     
     if maskiou_on:
-        gt_masks_for_maskratio = cat(gt_masks_for_maskratio, dim=0)
-        mask_ratio = (gt_masks.sum([1, 2]) / gt_masks_for_maskratio)
-
+        mask_ratio = cat(mask_ratios, dim=0)
         value_eps = 1e-10 * torch.ones(gt_masks.shape[0], device=gt_classes.device)
         mask_ratio = torch.max(mask_ratio, value_eps)
 
