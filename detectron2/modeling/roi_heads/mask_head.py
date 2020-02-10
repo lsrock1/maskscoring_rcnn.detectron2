@@ -61,7 +61,7 @@ def mask_rcnn_loss(pred_mask_logits, instances, maskiou_on):
                 
             mask_ratios.append(
                 (cropped_mask / instances_per_image.gt_masks.area())
-                .to(device=pred_mask_logits.device)
+                .to(device=pred_mask_logits.device).clamp(min=0., max=1.)
             )
             
         gt_masks_per_image = instances_per_image.gt_masks.crop_and_resize(
