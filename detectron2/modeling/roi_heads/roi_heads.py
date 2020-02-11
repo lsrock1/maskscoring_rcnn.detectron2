@@ -616,8 +616,8 @@ class StandardROIHeads(ROIHeads):
         features = [features[f] for f in self.in_features]
 
         if self.maskiou_on:
-            instances, mask_features, selected_mask, labels, _ = self._forward_mask(features, instances)
-            instances = self._forward_maskiou(mask_features, proposals, selected_mask, labels, maskiou_targets)
+            instances, mask_features = self._forward_mask(features, instances)
+            instances = self._forward_maskiou(mask_features, instances)
         else:
             instances = self._forward_mask(features, instances)
         instances = self._forward_keypoint(features, instances)
@@ -697,12 +697,13 @@ class StandardROIHeads(ROIHeads):
             mask_features = self.mask_pooler(features, pred_boxes)
             mask_logits = self.mask_head(mask_features)
             mask_rcnn_inference(mask_logits, instances)
+
             if self.maskiou_on:
-                instances, mask_features, instances.pred_masks.tensor, instances.pred_classes, None
+                instances, mask_features
             else:
                 return instances
 
-    def _forward_maskiou(self, mask_features, instances, selected_mask, labels, maskiou_targets=None):
+    def _forward_maskiou(self, mask_features, instances, selected_mask=None, labels=None, maskiou_targets=None):
         """
         Forward logic of the mask iou prediction branch.
 
@@ -719,11 +720,12 @@ class StandardROIHeads(ROIHeads):
         if not self.maskiou_on:
             return {} if self.training else instances
 
-        pred_maskiou = self.maskiou_head(mask_features, selected_mask)
         if self.training:
+            pred_maskiou = self.maskiou_head(mask_features, selected_mask)
             return {"loss_maskiou": mask_iou_loss(labels, pred_maskiou, maskiou_targets, self.maskiou_weight)}
 
         else:
+            pred_maskiou = self.maskiou_head(mask_features, torch.cat([i.pred_masks for i in instances], 0))
             mask_iou_inference(instances, pred_maskiou)
             return instances
 
