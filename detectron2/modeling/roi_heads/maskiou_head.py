@@ -54,7 +54,8 @@ def mask_iou_inference(pred_instances, pred_maskiou):
     num_masks = pred_maskiou.shape[0]
     index = torch.arange(num_masks, device=labels.device)
     maskious = pred_maskiou[index, labels]
-    # maskious = [maskious]
+    maskious = [maskious]
+    
     for maskiou, box in zip(maskious, pred_instances):
         box.scores = box.scores * maskiou
 
