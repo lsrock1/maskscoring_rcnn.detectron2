@@ -57,7 +57,7 @@ def mask_iou_inference(pred_instances, pred_maskiou):
     maskious = [maskious]
     
     for maskiou, box in zip(maskious, pred_instances):
-        box.scores = box.scores * maskiou
+        box.mask_scores = box.scores * maskiou
 
 
 @ROI_MASKIOU_HEAD_REGISTRY.register()
