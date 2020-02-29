@@ -75,7 +75,7 @@ def mask_rcnn_loss(pred_mask_logits, instances, maskiou_on):
     if len(gt_masks) == 0:
         if maskiou_on:
             selected_index = torch.arange(pred_mask_logits.shape[0], device=pred_mask_logits.device)
-            selected_mask = pred_mask_logits[selected_index, labels]
+            selected_mask = pred_mask_logits[selected_index, gt_classes]
             mask_num, mask_h, mask_w = selected_mask.shape
             selected_mask = selected_mask.reshape(mask_num, 1, mask_h, mask_w)
             return pred_mask_logits.sum() * 0, selected_mask, gt_classes, None
