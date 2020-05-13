@@ -699,7 +699,7 @@ class StandardROIHeads(ROIHeads):
             mask_rcnn_inference(mask_logits, instances)
 
             if self.maskiou_on:
-                instances, mask_features
+                return instances, mask_features
             else:
                 return instances
 
